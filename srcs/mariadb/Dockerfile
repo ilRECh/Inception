@@ -1,6 +1,6 @@
 FROM debian:buster
-RUN apt-get update
-RUN apt-get install mariadb-server -y
+
+RUN apt-get update && apt-get install mariadb-server -y
 
 COPY ./50-server.cnf /etc/mysql/mariadb.conf.d/
 COPY ./createdb.sql /
@@ -16,6 +16,8 @@ RUN sed -i "s/REPLACE_DB_NAME/$DB_NAME/g" /createdb.sql && \
     sed -i "s/REPLACE_PASSWORD/$DB_PASS/g" /createdb.sql && \ 
     sed -i "s/REPLACE_ROOT_PASS/$DB_ROOT_PASS/g" /createdb.sql
 
-RUN service mysql start && mysql < createdb.sql
-RUN rm -f createdb.sql
-CMD /usr/bin/mysqld_safe
+RUN service mysql start && mysql < createdb.sql && rm -f createdb.sql
+
+EXPOSE 3306
+
+CMD ip a && /usr/bin/mysqld_safe
