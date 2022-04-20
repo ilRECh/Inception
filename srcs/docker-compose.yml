@@ -1,0 +1,83 @@
+version: "3.5"
+
+networks:
+  inception:
+    driver: bridge
+
+volumes:
+  wordpress:
+    name: wordpress
+    driver: local
+    driver_opts:
+      device: /home/vcobbler/data/wordpress
+      o: bind
+      type: none
+  mariadb:
+    name: mariadb
+    driver: local
+    driver_opts:
+      device: /home/vcobbler/data/mariadb
+      o: bind
+      type: none
+
+
+services:
+  mariadb:  
+    container_name: mariadb_container
+    build:
+      context: ./mariadb
+      args:
+        DB_NAME: ${ENV_DB_NAME}
+        DB_USER: ${ENV_DB_USER}
+        DB_PASS: ${ENV_DB_PASS}
+        DB_ROOT_PASS: ${ENV_DB_ROOT_PASS}
+    volumes:
+      - mariadb:/var/lib/mysql
+    networks:
+      - inception
+    image: mariadb
+    restart: always
+
+  wordpress:
+    depends_on:
+      - mariadb
+    container_name: wordpress_container
+    build:
+      context: ./wordpress
+      args:
+        DB_NAME: ${ENV_DB_NAME}
+        DB_USER: ${ENV_DB_USER}
+        DB_PASS: ${ENV_DB_PASS}
+        DB_HOST: ${ENV_DB_HOST}
+    image: wordpress
+    volumes:
+      - wordpress:/var/www/wordpress
+    networks:
+      - inception
+    restart: always
+    environment:
+      - WP_URL=${ENV_WP_URL}
+      - WP_TITLE=${ENV_WP_TITLE}
+      - WP_ADMIN_NICK=${ENV_WP_ADMIN_NICK}
+      - WP_ADMIN_PASS=${ENV_WP_ADMIN_PASS}
+      - WP_ADMIN_MAIL=${ENV_WP_ADMIN_MAIL}
+      - WP_USER_NICK=${ENV_WP_USER_NICK}
+      - WP_USER_MAIL=${ENV_WP_USER_MAIL}
+      - WP_USER_PASS=${ENV_WP_USER_PASS}
+
+  nginx:
+    depends_on:
+      - wordpress
+    container_name: nginx_container
+    build:
+      context: ./nginx
+      args:
+        SERVER_NAME: ${ENV_SERVER_NAME}
+    image: nginx
+    ports:
+      - "443:443"
+    volumes:
+      - wordpress:/var/www/wordpress
+    networks:
+      - inception
+    restart: always
